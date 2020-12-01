@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Solitaire! - JavaScript</title>
+    <style>
+        .container {
+            display: grid;
+            grid-template-columns: min-content min-content min-content min-content min-content min-content min-content;
+            grid-gap: 10px;
+        }
+        .stack {
+            width: 132px;
+            height: 179px;
+            border: 1px solid gray;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="stack stock"></div>
+    <div class="stack talon"></div>
+    <div></div>
+    <div class="stack foundation"></div>
+    <div class="stack foundation"></div>
+    <div class="stack foundation"></div>
+    <div class="stack foundation"></div>
+    <div class="stack tableau"></div>
+    <div class="stack tableau"></div>
+    <div class="stack tableau"></div>
+    <div class="stack tableau"></div>
+    <div class="stack tableau"></div>
+    <div class="stack tableau"></div>
+    <div class="stack tableau"></div>
+</div>
+<script>
+
+    class Card {
+        constructor(suit, rank) {
+            this.suit = suit;
+            this.rank = rank;
+            this.isFaceUp = false;
+            this.isNewlyDropped = false;
+
+            if ((this.suit === "c") || (this.suit === "s")) {
+                this.color = 0;
+            }
+            else {
+                this.color = 1;
+            }
+        }
+    }
+
+    class Stack {
+        constructor() {
+            this.cards = [];
+        }
+
+        push(cards) {
+            if (Array.isArray(cards)) {
+                this.cards = this.cards.concat(cards);
+            }
+            else {
+                this.cards.push(cards);
+            }
+        }
+
+        pop(n) {
+            return this.cards.splice(this.cards.length-n);
+        }
+
+        peek(n) {
+            return this.cards.slice(this.cards.length-n);
+        }
+
+        clear() {
+            while (this.cards.length > 0) {
+                this.cards.pop();
+            }
+        }
+
+        isLegalDrag(numberOfCards) {
+            return false;
+        }
+
+        isLegalDrop(cards) {
+            return false;
+        }
+    }
+
+    class StockStack extends Stack {
+        pop(n) {
+            let cards = super.pop(n);
+
+            cards.forEach((card) => {
+                card.isFaceUp = true;
+            });
+
+            return cards;
+        }
+
+        push(cards) {
+            if (Array.isArray(cards)) {
+                cards.reverse();
+            }
+
+            if (Array.isArray(cards)) {
+                cards.forEach((card) => {
+                    card.isFaceUp = false;
+                });
+            }
+            else {
+                cards.isFaceUp = false;
+            }
+
+            super.push(cards);
+        }
+    }
+
+    class TalonStack extends Stack {
+        isLegalDrag(numberOfCards) {
+            return numberOfCards === 1;
+        }
+
+        push(cards) {
+            this.cards.forEach((card) => {
+                card.isNewlyDropped = false;
+            });
+
+            if (Array.isArray(cards)) {
+                cards.forEach((card) => {
+                    card.isNewlyDropped = true;
+                });
+            }
+            else {
+                cards.isNewlyDropped = true;
+            }
+
+            super.push(cards);
+        }
+    }
+
+    class FoundationStack extends Stack {
+        isLegalDrop(cards) {
+            if (this.cards.length > 0) {
+                if ((this.cards[this.cards.length - 1].rank === cards[0].rank - 1) && (this.cards[this.cards.length - 1].suit === cards[0].suit)) {
+                    return true;
+                }
+            }
+            else {
+                if (cards[0].rank === 1) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    class TableauStack extends Stack {
+        isLegalDrag(numberOfCards) {
+            return this.cards[this.cards.length - numberOfCards].isFaceUp;
+        }
+
+        isLegalDrop(cards) {
+            if (this.cards.length > 0) {
+                if ((this.cards[this.cards.length - 1].rank === cards[0].rank + 1) && (this.cards[this.cards.length - 1].color !== cards[0].color)) {
+                    return true;
+                }
+            }
+            else {
+                if (cards[0].rank === 13) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        pop(n) {
+            if (this.cards.length > n) {
+                this.cards[this.cards.length-n-1].isFaceUp = true;
+            }
+
+            return this.cards.splice(this.cards.length-n);
+        }
+    }
+
+    class Model {
+        constructor() {
+            this.stacks = [];
+
+            this.stacks.push(new StockStack());
+            this.stacks.push(new TalonStack());
+
+            for (let i=0; i<4; i++) {
+                this.stacks.push(new FoundationStack());
+            }
+
+            for (let i=0; i<7; i++) {
+                this.stacks.push(new TableauStack());
+            }
+        }
+
+        deal() {
+            for (let i=0; i<13; i++) {
+                this.stacks[i].clear();
+            }
+
+            let deck = [];
+
+            for (let i=0; i<52; i++) {
+                let suit;
+                switch(Math.floor(i/13)) {
+                    case 0:
+                        suit = "c";
+                        break;
+                    case 1:
+                        suit = "d";
+                        break;
+                    case 2:
+                        suit = "h";
+                        break;
+                    case 3:
+                        suit = "s";
+                        break;
+                }
+                let value = i%13+1;
+                deck.push(new Card(suit, value));
+            }
+
+            // shuffle
+
+            for(let i=0; i<deck.length; i++) {
+                let j = Math.floor(Math.random() * (deck.length-i) + i);
+                let temp = deck[i];
+                deck[i] = deck[j];
+                deck[j] = temp;
+            }
+
+            // deal
+
+            for (let i=0; i<7; i++) {
+                for (let j=0; j<=i; j++) {
+                    let card = deck.pop();
+                    if (j===i) {
+                        card.isFaceUp = true;
+                    }
+                    this.stacks[6+i].push(card);
+                }
+            }
+
+            while(deck.length > 0) {
+                let card = deck.pop();
+                this.stacks[0].push(card);
+            }
+        }
+
+        isLegalDrop(command) {
+            let cards = this.stacks[command.fromStackIndex].peek(command.numberOfCards);
+            return this.stacks[command.toStackIndex].isLegalDrop(cards);
+        }
+
+        process(command) {
+            let cards = this.stacks[command.fromStackIndex].pop(command.numberOfCards);
+            this.stacks[command.toStackIndex].push(cards);
+        }
+    }
+
+    class StackView {
+        constructor(element) {
+            this.element = element;
+
+            this.faceDownOffsetX = 0;
+            this.faceDownOffsetY = 0;
+            this.faceUpOffsetX = 0;
+            this.faceUpOffsetY = 0;
+
+            this.newlyDroppedOffsetX = 0;
+            this.newlyDroppedOffsetY = 0;
+        }
+
+        update(stack) {
+            while (this.element.hasChildNodes()) {
+                this.element.removeChild(this.element.firstChild);
+            }
+
+            let left = this.element.getBoundingClientRect().left;
+            let top = this.element.getBoundingClientRect().top;
+
+            for (let i=0; i<stack.cards.length; i++) {
+                if (i > 0) {
+                    if (stack.cards[i-1].isFaceUp) {
+                        left += this.faceUpOffsetX;
+                        top += this.faceUpOffsetY;
+                    }
+                    else {
+                        left += this.faceDownOffsetX;
+                        top += this.faceDownOffsetY;
+                    }
+
+                    if (stack.cards[i-1].isNewlyDropped) {
+                        left += this.newlyDroppedOffsetX;
+                        top += this.newlyDroppedOffsetY;
+                    }
+                }
+
+                let img = document.createElement("img");
+                img.style.position = "absolute";
+                img.style.left = left + "px";
+                img.style.top = top + "px";
+                img.style.zIndex = i;
+
+                if (stack.cards[i].isFaceUp) {
+                    img.src =  "img/" + stack.cards[i].suit + stack.cards[i].rank + ".png";
+                }
+                else {
+                    img.src =  "img/back.png";
+                }
+
+                this.element.appendChild(img);
+            }
+        }
+
+        numberOfCards(x, y) {
+            let cards = this.element.children;
+
+            for(let i=0; i<cards.length; i++) {
+                let bbox = cards[(cards.length-1)-i].getBoundingClientRect();
+                if ((x > bbox.left) && (x < bbox.right) && (y > bbox.top) && (y < bbox.bottom)) {
+                    return i+1;
+                }
+            }
+            return 0;
+        }
+
+        select(numberOfCards) {
+            let cards = Array.from(this.element.children);
+
+            return cards.splice(cards.length - numberOfCards);
+        }
+
+        ismouseover(x, y) {
+            let topElement = this.element.hasChildNodes() ? this.element.lastChild : this.element;
+            let bbox = topElement.getBoundingClientRect();
+
+            return ((x > bbox.left) && (x < bbox.right) && (y > bbox.top) && (y < bbox.bottom));
+        }
+    }
+
+    class StockView extends StackView {}
+
+    class TalonView extends StackView {
+        constructor(element) {
+            super(element);
+            this.newlyDroppedOffsetX = 15;
+        }
+    }
+
+    class FoundationView extends StackView {}
+
+    class TableauView extends StackView {
+        constructor(element) {
+            super(element);
+            this.faceDownOffsetY = 15;
+            this.faceUpOffsetY = 30;
+        }
+    }
+
+    class View {
+        constructor() {
+            this.stackViews = [];
+
+            this.stockElement = document.getElementsByClassName("stock")[0];
+            this.stackViews.push(new StockView(this.stockElement));
+
+            this.talonElement = document.getElementsByClassName("talon")[0];
+            this.stackViews.push(new TalonView(this.talonElement));
+
+            this.foundationElements = document.getElementsByClassName("foundation");
+            for (let i=0; i<this.foundationElements.length; i++) {
+                this.stackViews.push(new FoundationView(this.foundationElements[i]));
+            }
+
+            this.tableauElements = document.getElementsByClassName("tableau");
+            for (let i=0; i<this.tableauElements.length; i++) {
+                this.stackViews.push(new TableauView(this.tableauElements[i]));
+            }
+        }
+
+        update(model) {
+            for (let i=0; i<this.stackViews.length; i++) {
+                this.stackViews[i].update(model.stacks[i]);
+            }
+        }
+    }
+
+    class Command {
+        constructor(fromStackIndex, numberOfCards) {
+            this.fromStackIndex = fromStackIndex;
+            this.numberOfCards = numberOfCards;
+
+            this.toStackIndex = -1;
+        }
+    }
+
+    class Controller {
+        constructor(model, view) {
+            this.model = model;
+            this.view = view;
+
+            this.selected = [];
+
+            this.model.deal();
+            this.view.update(this.model);
+
+            document.ondragstart = function () { return false; };
+
+            document.addEventListener("mousedown", e => {
+                this.mousedownX = e.clientX;
+                this.mousedownY = e.clientY;
+                for(let i=0; i<this.view.stackViews.length; i++) {
+                    let numberOfCards = this.view.stackViews[i].numberOfCards(this.mousedownX, this.mousedownY);
+                    if ((numberOfCards > 0) && (this.model.stacks[i].isLegalDrag(numberOfCards))) {
+                        this.selected = this.view.stackViews[i].select(numberOfCards);
+                        this.initialX = this.selected[0].getBoundingClientRect().left;
+                        this.initialY = this.selected[0].getBoundingClientRect().top;
+                        this.command = new Command(i, this.selected.length);
+                    }
+                }
+            });
+
+            document.addEventListener("mousemove", e => {
+                if (this.selected.length > 0) {
+                    this.selected.forEach((s, i) => {
+                        s.style.left = this.initialX + (e.clientX- this.mousedownX) + "px";
+                        s.style.top = this.initialY + (e.clientY - this.mousedownY) + (i * 30) + "px";
+                        s.style.zIndex = (i + 52);
+                    });
+                }
+            });
+
+            document.addEventListener("mouseup", e => {
+                if (this.selected.length > 0) {
+                    for(let i=0; i<this.view.stackViews.length; i++) {
+                        if ((i !== this.command.fromStackIndex) && (this.view.stackViews[i].ismouseover(e.clientX, e.clientY))) {
+                            this.command.toStackIndex = i;
+                            if (this.model.isLegalDrop(this.command)) {
+                                this.model.process(this.command);
+                                break;
+                            }
+                        }
+                    }
+                    this.selected = [];
+                    this.view.update(this.model);
+                }
+            });
+
+            document.addEventListener("click", e => {
+                if (this.view.stackViews[0].ismouseover(e.clientX, e.clientY)) {
+                    if (this.model.stacks[0].cards.length > 0) {
+                        this.command = new Command(0, Math.min(3,this.model.stacks[0].cards.length));
+                        this.command.toStackIndex = 1;
+                        this.model.process(this.command);
+                        this.view.update(this.model);
+                    }
+                    else {
+                        this.command = new Command(1, this.model.stacks[1].cards.length);
+                        this.command.toStackIndex = 0;
+                        this.model.process(this.command);
+                        this.view.update(this.model);
+                    }
+                }
+            });
+        }
+    }
+
+    const controller = new Controller(new Model(), new View());
+</script>
+</body>
+</html>
