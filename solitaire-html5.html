@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Solitaire! - AngularJS</title>
+    <style>
+        .container {
+            display: grid;
+            grid-template-columns: min-content min-content min-content min-content min-content min-content min-content;
+            grid-gap: 10px;
+        }
+        .stack {
+            width: 132px;
+            height: 179px;
+            border: 1px solid gray;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .card {
+            position: absolute;
+        }
+        img {
+            -webkit-user-drag: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+<div ng-app="myApp" ng-controller="myCtrl">
+    <div class="container">
+        <div class="stack stock">
+            <div id="abc" class="card" draggable="true" style="top: 0px; left: 0px; z-index: 99">
+                <img src="img/c1.png" draggable="false"/><!-- IE -->
+                <div id="def" class="card" draggable="true" style="top: 30px; left: 0px; z-index: 100">
+                    <img src="img/c2.png" draggable="false"/><!-- IE -->
+                </div>
+            </div>
+        </div>
+        <div class="stack talon"></div>
+        <div></div>
+        <div class="stack foundation"></div>
+        <div class="stack foundation"></div>
+        <div class="stack foundation"></div>
+        <div class="stack foundation"></div>
+        <div class="stack tableau"></div>
+        <div class="stack tableau"></div>
+        <div class="stack tableau"></div>
+        <div class="stack tableau"></div>
+        <div class="stack tableau"></div>
+        <div class="stack tableau"></div>
+        <div class="stack tableau"></div>
+    </div>
+</div>
+<script>
+    function dragstart(e) {
+        e.dataTransfer.setData("text", e.target.id);
+
+        document.getElementById(e.target.id).style.opacity = '0.1'; // boo native implementation
+    }
+
+    function dragend(e) {
+        document.getElementById(e.target.id).style.opacity = '1';
+    }
+
+    function allowDrop(e) {
+        e.preventDefault();
+    }
+
+    function drop(e) {
+        e.preventDefault();
+
+        var draggedId = e.dataTransfer.getData("text");
+
+        var dropTo = e.target.nodeName === "IMG" ? e.target.parentElement : e.target;
+        dropTo.appendChild(document.getElementById(draggedId));
+
+        if (dropTo.classList.contains('stack')) {
+            document.getElementById(draggedId).style.top = "0px";
+        }
+        else {
+            document.getElementById(draggedId).style.top = "30px";
+        }
+    }
+
+    let cards = document.getElementsByClassName("card");
+    for (var i = 0; i < cards.length; i++) {
+        cards.item(i).addEventListener("dragstart", dragstart, false);
+        cards.item(i).addEventListener("dragend", dragend, false);
+    }
+
+    let stacks = document.getElementsByClassName("stack");
+    for (var i = 0; i < stacks.length; i++) {
+        stacks.item(i).addEventListener("dragover", allowDrop);
+        stacks.item(i).addEventListener("drop", drop);
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Solitaire! - jQuery</title>
+    <style>
+        .container {
+            display: grid;
+            grid-template-columns: min-content min-content min-content min-content min-content min-content min-content;
+            grid-gap: 10px;
+        }
+        .stack {
+            width: 132px;
+            height: 179px;
+            border: 1px solid gray;
+            box-sizing: border-box;
+            position: relative;
+        }
+        div, img {
+            -webkit-user-drag: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="stack stock"></div>
+    <div class="stack talon"></div>
+    <div></div>
+    <div class="stack foundation"></div>
+    <div class="stack foundation"></div>
+    <div class="stack foundation"></div>
+    <div class="stack foundation"></div>
+    <div class="stack tableau"></div>
+    <div class="stack tableau"></div>
+    <div class="stack tableau"></div>
+    <div class="stack tableau"></div>
+    <div class="stack tableau"></div>
+    <div class="stack tableau"></div>
+    <div class="stack tableau"></div>
+</div>
+<script>
+    $(document).ready(function() {
+
+        deal();
+
+        $(".card").draggable({
+            revert: "invalid",
+            //stack: ".stack .card" // stacking context...
+            start: function (event, ui) {
+                $(".card").css({ zIndex: 1 });
+
+                if ($(this).parents(".card").length > 0) {
+                    $(this).parents(".card").css({ zIndex: 100 });
+                }
+                else {
+                    $(this).css({ zIndex: 100 });
+                }
+            }
+        });
+
+        $( ".stack, .card" ).droppable({
+            tolerance: "pointer",
+            accept: function(draggable) {
+
+                let toStack;
+                if ($(this).hasClass("stack")) {
+                    toStack = $(this);
+                }
+                else {
+                    toStack = $(this).parents(".stack");
+                }
+
+                if ($(this).find(".card").length !== 0) {
+                    return false;
+                }
+
+                if (toStack.hasClass("foundation") && draggable.find(".card").length === 0) {
+                    if (toStack.find(".card").length === 0) {
+                        if (draggable.data("value") === 1) {
+                            return true;
+                        }
+                    }
+                    else {
+                        let last = toStack.find(".card").last();
+                        if ((last.data("suit") === draggable.data("suit") )&& (last.data("value") === draggable.data("value")-1)) {
+                            return true;
+                        }
+                    }
+                }
+                else if (toStack.hasClass("tableau")) {
+                    if (toStack.find(".card").length === 0) {
+                        if (draggable.data("value") === 13) {
+                            return true;
+                        }
+                    }
+                    else {
+                        let last = toStack.find(".card").last();
+                        if ((last.data("color") !== draggable.data("color") )&& (last.data("value") === draggable.data("value")+1)) {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            },
+            drop: function (event, ui) {
+
+                let fromStack = $(ui.draggable).parents('.stack');
+                let toStack = $(this).parents('.stack');
+
+                let cards = $(ui.draggable).detach();
+
+                if (toStack.hasClass("tableau") && toStack.find(".card").length > 0) {
+                    cards.css({ top: 30, left: 0 });
+                }
+                else {
+                    cards.css({ top: 0, left: 0 });
+                }
+
+                if (toStack.find(".card").length > 0) {
+                    toStack.find('.card').last().append(cards);
+                }
+                else {
+                    $(this).append(cards);
+                }
+
+                if (fromStack.hasClass("talon")) {
+                    if (fromStack.find(".card").length > 0) {
+                        fromStack.find(".card").last().draggable({ disabled: false });
+                    }
+                }
+                if (fromStack.hasClass("tableau")) {
+                    if ((fromStack.find(".card").length > 0) && (fromStack.find(".card").last().data("facing") === "down")) {
+                        let card = fromStack.find(".card").last();
+                        card.find("img").attr("src", "img/" + card.data("suit") + card.data("value") + ".png");
+                        card.data("facing", "up");
+                        card.draggable({ disabled: false });
+                    }
+                }
+            }
+        });
+
+        $(".stock").click(function() {
+            if ($(".stock").find(".card").length > 0) {
+
+                let n = Math.min($(".stock").find(".card").length, 3);
+                let cards = $(".stock").find(".card").slice(-n).detach();
+
+                $(".talon").find(".card").css({ top: 0, left: 0 });
+                $(".talon").append(cards);
+                cards.each(function(index) {
+                    $(this).find("img").attr("src", "img/" + $(this).data("suit") + $(this).data("value") + ".png");
+                    $(this).data("facing", "up");
+                    $(this).css({ top: 0, left: 20*index });
+                });
+
+                cards.last().draggable({ disabled: false });
+            }
+            else {
+                let cards = $(".talon").find(".card").detach();
+                cards = $(cards.get().reverse());
+
+                $(".stock").append(cards);
+                cards.each(function( index ) {
+                    $(this).find("img").attr("src", "img/back.png");
+                    $(this).data("facing", "down");
+                    $(this).draggable({ disabled: true });
+                });
+
+                cards.css({ top: 0, left: 0 });
+            }
+        });
+    });
+
+    function deal() {
+        let deck = [];
+
+        for (let i=0; i<52; i++) {
+            let suit;
+            switch(Math.floor(i/13)) {
+                case 0:
+                    suit = "c";
+                    break;
+                case 1:
+                    suit = "d";
+                    break;
+                case 2:
+                    suit = "h";
+                    break;
+                case 3:
+                    suit = "s";
+                    break;
+            }
+            let value = i%13+1;
+
+            let card = $("<div>");
+            card.addClass("card");
+            card.css({ position: "absolute", top: 0, left: 0 });
+            card.data("suit", suit);
+            card.data("value", value);
+            card.data("color", suit === "c" || suit === "s" ? "black" : "red");
+            card.append("<img/>");
+            card.find("img").attr("src", "img/back.png");
+            card.data("facing", "down");
+            card.draggable({ disabled: true });
+            deck.push(card);
+        }
+
+        // shuffle
+
+        for(let i=0; i<deck.length; i++) {
+            let j = Math.floor(Math.random() * (deck.length-i) + i);
+            let temp = deck[i];
+            deck[i] = deck[j];
+            deck[j] = temp;
+        }
+
+        // deal
+
+        for (let i=0; i<7; i++) {
+            for (let j=0; j<=i; j++) {
+                let card = deck.pop();
+                if (j===0) {
+                    $(".tableau").eq(i).append(card)
+                }
+                else {
+                    $(".tableau").eq(i).find('.card').last().append(card)
+                    card.css({ top: 30, left: 0 });
+                }
+
+                if (j===i) {
+                    card.find("img").attr("src", "img/" + card.data("suit") + card.data("value") + ".png");
+                    card.data("facing", "up");
+                    card.draggable({ disabled: false });
+                }
+            }
+        }
+
+        while(deck.length > 0) {
+            let card = deck.pop();
+            if ($(".stock").find('.card').length === 0) {
+                $(".stock").append(card);
+            }
+            else {
+                $(".stock").find('.card').last().append(card);
+            }
+        }
+    }
+</script>
+</body>
+</html>
