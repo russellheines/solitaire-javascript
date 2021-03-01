@@ -1,10 +1,10 @@
 # Solitaire
 
-* solitaire-javascript.html
-** implements drag and drop from scratch in JavaScript
+solitaire-javascript.html
+* implements drag and drop from scratch in JavaScript
 
-* solitaire-jquery.html
-** implements drag and drop using JQuery
+solitaire-jquery.html
+* implements drag and drop using jQuery
 
-* solitaire-html.html
-** implements drag and drop using HTML5
+solitaire-html5.html
+* implements drag and drop using HTML5
